@@ -1,6 +1,6 @@
-/* ============================================================
+/* 
    Smart Study Portal — Light Design System
-   ============================================================ */
+    */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
@@ -106,9 +106,9 @@ small { font-size: 0.8rem; color: var(--text-muted); }
     50% { opacity: 0.5; }
 }
 
-/* ============================================================
+/* 
    AUTH / LOGIN
-   ============================================================ */
+    */
 #login-section {
     justify-content: center;
     align-items: center;
@@ -198,9 +198,9 @@ small { font-size: 0.8rem; color: var(--text-muted); }
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* ============================================================
+/* 
    FORMS
-   ============================================================ */
+    */
 .input-group { margin-bottom: 1.125rem; text-align: left; }
 .input-group label {
     display: block;
@@ -240,9 +240,9 @@ textarea {
     min-height: 80px;
 }
 
-/* ============================================================
+/* 
    BUTTONS
-   ============================================================ */
+    */
 .btn {
     padding: 0.65rem 1.25rem;
     border-radius: var(--radius);
@@ -305,9 +305,9 @@ textarea {
 }
 .btn-ghost:hover { color: var(--text-primary); background: var(--bg-elevated); }
 
-/* ============================================================
+/* 
    NAVBAR
-   ============================================================ */
+    */
 .nav-bar {
     display: flex;
     justify-content: space-between;
@@ -391,9 +391,9 @@ textarea {
 .role-label.teacher { background: rgba(79,93,228,0.1); color: var(--accent); }
 .role-label.student { background: rgba(14,158,109,0.1); color: var(--success); }
 
-/* ============================================================
+/* 
    DASHBOARD
-   ============================================================ */
+    */
 .dashboard-content { max-width: 1060px; margin: 0 auto; width: 100%; }
 
 /* Welcome banner */
@@ -520,9 +520,9 @@ textarea {
     border-left: 4px solid var(--accent);
 }
 
-/* ============================================================
+/* 
    MODALS
-   ============================================================ */
+    */
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -559,9 +559,9 @@ textarea {
     margin-top: 1.5rem;
 }
 
-/* ============================================================
+/* 
    CLASSROOM LAYOUT
-   ============================================================ */
+    */
 .classroom-layout {
     display: grid;
     grid-template-columns: 268px 1fr;
@@ -641,9 +641,9 @@ textarea {
 .hand-item .hand-name { color: var(--text-primary); font-weight: 500; }
 .hand-item .hand-time { color: var(--text-muted); font-size: 0.75rem; }
 
-/* ============================================================
+/* 
    TABLES
-   ============================================================ */
+    */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -671,9 +671,9 @@ th:last-child { border-radius: 0 8px 8px 0; }
 td { color: var(--text-secondary); }
 tr:hover td { background: var(--bg-elevated); }
 
-/* ============================================================
+/* 
    BADGES
-   ============================================================ */
+    */
 .badge {
     padding: 0.22rem 0.65rem;
     border-radius: 6px;
@@ -690,9 +690,9 @@ tr:hover td { background: var(--bg-elevated); }
 .badge-correct { background: var(--success-subtle); color: var(--success); }
 .badge-wrong { background: var(--danger-subtle); color: var(--danger); }
 
-/* ============================================================
+/* 
    QUIZ PANEL
-   ============================================================ */
+    */
 .quiz-panel {
     background: var(--bg-elevated);
     border: 1px solid var(--border-color);
@@ -988,9 +988,9 @@ tr:hover td { background: var(--bg-elevated); }
 
 .empty-state p { font-size: 0.9rem; }
 
-/* ============================================================
+/* 
    TOAST NOTIFICATIONS
-   ============================================================ */
+    */
 #toast-container {
     position: fixed;
     bottom: 24px;
@@ -1022,9 +1022,9 @@ tr:hover td { background: var(--bg-elevated); }
 .toast.success { border-left: 3px solid var(--success); }
 .toast.info { border-left: 3px solid var(--accent); }
 
-/* ============================================================
+/* 
    WS INDICATOR
-   ============================================================ */
+    */
 #ws-indicator {
     font-size: 0.72rem;
 }
@@ -1035,9 +1035,9 @@ tr:hover td { background: var(--bg-elevated); }
 ::-webkit-scrollbar-thumb { background: rgba(79,93,228,0.15); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(79,93,228,0.28); }
 
-/* ============================================================
+/* 
    MOBILE
-   ============================================================ */
+    */
 @media (max-width: 768px) {
     .classroom-layout { grid-template-columns: 1fr; }
     date-range-fields { grid-template-columns: 1fr; }

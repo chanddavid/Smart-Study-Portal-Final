@@ -1,18 +1,18 @@
-/* ============================================================
+/* 
    Smart Study Portal — API Client
    Handles all HTTP communication with the Django backend.
-   ============================================================ */
+    */
 
 const API_BASE = "http://127.0.0.1:8000";
 
 const ApiClient = {
-    /* ---- Token helpers ---- */
+    /*  Token helpers  */
     getToken() { return localStorage.getItem('ssp_token'); },
     setToken(t) { localStorage.setItem('ssp_token', t); },
     clearAuth() { localStorage.removeItem('ssp_token'); localStorage.removeItem('ssp_user'); },
     getUser() { const u = localStorage.getItem('ssp_user'); return u ? JSON.parse(u) : null; },
 
-    /* ---- Core request handler ---- */
+    /*  Core request handler  */
     async request(endpoint, method = 'GET', body = null) {
         const headers = { 'Content-Type': 'application/json' };
 
@@ -41,7 +41,7 @@ const ApiClient = {
         return data;
     },
 
-    /* ---- Auth ---- */
+    /*  Auth  */
     login(email, password)  { return this.request('/auth/login/', 'POST', { email, password }); },
     logout()                { return this.request('/auth/logout/', 'POST'); },
     getMe()                 { return this.request('/me/'); },
@@ -49,23 +49,23 @@ const ApiClient = {
     resetPasswordRequest(email)                    { return this.request('/auth/password-reset/request/', 'POST', { email }); },
     resetPasswordConfirm(uid, token, new_password) { return this.request('/auth/password-reset/confirm/', 'POST', { uid, token, new_password }); },
 
-    /* ---- Classes ---- */
+    /*  Classes  */
     getClasses()            { return this.request('/classes/'); },
     createClass(name)       { return this.request('/classes/', 'POST', { name }); },
     getClassDetail(id)      { return this.request(`/classes/${id}/`); },
     updateClass(id, data)   { return this.request(`/classes/${id}/`, 'PATCH', data); },
     deleteClass(id)         { return this.request(`/classes/${id}/`, 'DELETE'); },
 
-    /* ---- Enrolments ---- */
+    /*  Enrolments  */
     getStudents(classId)                  { return this.request(`/classes/${classId}/students/`); },
     enrolStudent(classId, email)          { return this.request(`/classes/${classId}/students/`, 'POST', { email }); },
     removeStudent(classId, studentId)     { return this.request(`/classes/${classId}/students/${studentId}/`, 'DELETE'); },
 
-    /* ---- Announcements ---- */
+    /*  Announcements  */
     getAnnouncements(classId)             { return this.request(`/classes/${classId}/announcements/`); },
     createAnnouncement(classId, message)  { return this.request(`/classes/${classId}/announcements/`, 'POST', { message }); },
 
-    /* ---- Quizzes ---- */
+    /*  Quizzes  */
     getQuizzes(classId)                              { return this.request(`/quizzes/?class_id=${classId}`); },
     createQuiz(body)                                 { return this.request('/quizzes/', 'POST', body); },
     launchQuiz(quizId)                               { return this.request(`/quizzes/${quizId}/launch/`, 'POST'); },
@@ -75,19 +75,19 @@ const ApiClient = {
     getQuizResults(quizId)                           { return this.request(`/quizzes/${quizId}/results/`); },
     getMyGrades()                                    { return this.request('/me/grades/'); },
 
-    /* ---- Calendar ---- */
+    /*  Calendar  */
     getEvents(classId)                            { return this.request(`/classes/${classId}/calendar/`); },
     createEvent(classId, title, start_date, end_date) { return this.request(`/classes/${classId}/calendar/`, 'POST', { title, start_date, end_date }); },
     updateEvent(eventId, data)                     { return this.request(`/calendar/${eventId}/`, 'PATCH', data); },
     deleteEvent(eventId)                           { return this.request(`/calendar/${eventId}/`, 'DELETE'); },
 
-    /* ---- Hand Raises ---- */
+    /*  Hand Raises  */
     getHandRaises(classId)    { return this.request(`/classes/${classId}/hand-raises/`); },
     raiseHand(classId)        { return this.request('/hand-raises/', 'POST', { class_id: classId }); },
     lowerHand(handId)         { return this.request(`/hand-raises/${handId}/`, 'DELETE'); },
     clearHandRaises(classId)  { return this.request(`/classes/${classId}/hand-raises/`, 'DELETE'); },
 
-    /* ---- Randomizers ---- */
+    /*  Randomizers  */
     pickRandomStudent(classId)          { return this.request('/random/pick-student/', 'POST', { class_id: classId }); },
     generateGroups(classId, group_size) { return this.request('/random/groups/', 'POST', { class_id: classId, group_size }); },
     getGroups(classId)                  { return this.request(`/classes/${classId}/groups/`); },

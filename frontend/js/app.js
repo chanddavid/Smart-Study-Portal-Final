@@ -1,6 +1,6 @@
-// ============================================================
+// 
 // Smart Study Portal — Application Controller
-// ============================================================
+// 
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
@@ -19,7 +19,7 @@ let quizDraftAnswers = {};
 
 const EVENT_COLORS = ['#38bdf8', '#f59e0b', '#10b981', '#f472b6', '#a78bfa', '#f87171', '#22c55e', '#eab308'];
 
-// ---- Utilities ----
+//  Utilities 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
         '&': '&amp;',
@@ -63,7 +63,7 @@ function statusBadge(s) {
     const map = { DRAFT: 'badge-draft', LIVE: 'badge-live', COMPLETED: 'badge-completed' };
     return `<span class="badge ${map[s] || 'badge-default'}">${s}</span>`;
 }
-// ---- Tabs ----
+//  Tabs 
 $$('.tab').forEach(tab => {
     tab.addEventListener('click', e => {
         $$('.tab').forEach(t => t.classList.remove('active'));
@@ -83,7 +83,7 @@ function refreshActiveTab() {
     if (id === 'tab-calendar') fetchCalendar();
 }
 
-// ---- Auth ----
+//  Auth 
 window.addEventListener('auth_expired', () => { showToast('Session expired.', 'error'); switchScreen('login'); });
 
 $('#login-form').addEventListener('submit', async e => {
@@ -121,7 +121,7 @@ $('#btn-confirm-logout').addEventListener('click', async () => {
 // Cancel logout
 $('#btn-cancel-logout').addEventListener('click', () => $('#logout-confirm-modal').classList.add('hidden'));
 
-// ---- Password Reset Flow ----
+//  Password Reset Flow 
 $('#link-forgot-pw').addEventListener('click', e => {
     e.preventDefault();
     $('#pw-reset-request-modal').classList.remove('hidden');
@@ -164,7 +164,7 @@ $('#pw-reset-confirm-form').addEventListener('submit', async e => {
     }
 });
 
-// ---- Edit Profile ----
+//  Edit Profile 
 $('#btn-edit-profile').addEventListener('click', () => {
     const user = ApiClient.getUser();
     if (!user) return;
@@ -196,7 +196,7 @@ $('#edit-profile-form').addEventListener('submit', async e => {
     }
 });
 
-// ---- Dashboard ----
+//  Dashboard 
 function initDashboard() {
     const user = ApiClient.getUser();
     if (!user) return switchScreen('login');
@@ -282,7 +282,7 @@ async function deleteClass(id) {
     try { await ApiClient.deleteClass(id); fetchDashboardClasses(); } catch (_) {}
 }
 
-// ---- Classroom View ----
+//  Classroom View 
 $('#btn-back-dash').addEventListener('click', () => {
     if (ws) ws.close();
     activeClassId = null;
@@ -315,7 +315,7 @@ async function openClassroom(id, name) {
     connectWebSocket(id);
 }
 
-// ---- Feed / Announcements ----
+//  Feed / Announcements 
 async function fetchAnnouncements() {
     try {
         const anns = await ApiClient.getAnnouncements(activeClassId);
@@ -345,7 +345,7 @@ $('#announce-form').addEventListener('submit', async e => {
     } catch (_) { showToast('Failed.', 'error'); }
 });
 
-// ---- Hand Raises ----
+//  Hand Raises 
 async function fetchHands() {
     if (currentRole !== 'TEACHER') return;
     try {
@@ -384,7 +384,7 @@ async function lowerHand(id) {
     try { await ApiClient.lowerHand(id); fetchHands(); } catch (_) {}
 }
 
-// ---- Roster ----
+//  Roster 
 async function fetchRoster() {
     try {
         const envs = await ApiClient.getStudents(activeClassId);
@@ -413,7 +413,7 @@ async function removeStudent(studentId) {
     try { await ApiClient.removeStudent(activeClassId, studentId); fetchRoster(); } catch (_) {}
 }
 
-// ---- Quizzes ----
+//  Quizzes 
 async function fetchQuizzes() {
     try {
         const quizzes = await ApiClient.getQuizzes(activeClassId);
@@ -498,7 +498,7 @@ async function revealQuiz(id) {
     try { await ApiClient.revealQuiz(id); showToast('Quiz completed.'); fetchQuizzes(); } catch (_) { showToast('Failed.', 'error'); }
 }
 
-// ---- Take Quiz (Student) ----
+//  Take Quiz (Student) 
 async function takeQuiz(quizId) {
     const quizzes = await ApiClient.getQuizzes(activeClassId);
     const quiz = quizzes.find(q => q.id === quizId);
@@ -580,7 +580,7 @@ async function submitQuizAttempt(quizId) {
     }
 }
 
-// ---- View Results ----
+//  View Results 
 async function viewResults(quizId) {
     try {
         const results = await ApiClient.getQuizResults(quizId);
@@ -623,7 +623,7 @@ async function viewResults(quizId) {
     } catch (_) { showToast('Failed to load results.', 'error'); }
 }
 
-// ---- Calendar ----
+//  Calendar 
 async function fetchCalendar() {
     try {
         const evs = await ApiClient.getEvents(activeClassId);
@@ -764,7 +764,7 @@ $('#btn-show-my-groups').addEventListener('click', async () => {
     }
 });
 
-// ---- Randomizer Tools ----
+//  Randomizer Tools 
 $('#btn-rand-student').addEventListener('click', async () => {
     try {
         const res = await ApiClient.pickRandomStudent(activeClassId);
@@ -798,7 +798,7 @@ function showRandomResult(title, content) {
 }
 $('#btn-close-random').addEventListener('click', () => $('#random-result-modal').classList.add('hidden'));
 
-// ---- WebSocket ----
+//  WebSocket 
 function connectWebSocket(classId) {
     if (ws) ws.close();
     ws = new WebSocket(`ws://127.0.0.1:8000/ws/classroom/${classId}/`);
@@ -827,7 +827,7 @@ function connectWebSocket(classId) {
 }
 
 
-// ---- Bootstrap ----
+//  Bootstrap 
 if (ApiClient.getUser() && ApiClient.getToken()) {
     initDashboard();
 } else {
