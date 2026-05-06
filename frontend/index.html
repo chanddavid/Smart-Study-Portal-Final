@@ -250,13 +250,19 @@
                         <!-- CALENDAR -->
                         <div id="tab-calendar" class="tab-content">
                             <div class="flex-between">
-                                <h3>Events &amp; Schedule</h3>
+                                <h3>Events & Schedule</h3>
                                 <button class="btn btn-sm btn-primary teacher-only hidden" id="btn-new-event">+ Schedule</button>
                             </div>
-                            <table style="margin-top:1rem;">
-                                <thead><tr><th>Event</th><th>Date</th><th class="teacher-only hidden">Actions</th></tr></thead>
+                            <div id="calendar-visualization" class="calendar-visualization"></div>
+                            <div id="calendar-event-detail" class="event-detail hidden"></div>
+                            <table class="calendar-table">
+                                <thead><tr><th>Event</th><th>From Date → To Date</th><th class="teacher-only hidden">Actions</th></tr></thead>
                                 <tbody id="calendar-tbody"></tbody>
                             </table>
+                            <div id="student-group-action" class="student-only hidden mt-md">
+                                <button class="btn btn-secondary" id="btn-show-my-groups">Group</button>
+                            </div>
+                            <div id="student-groups-panel" class="groups-panel hidden mt-md"></div>
                         </div>
                     </div>
                 </div>
@@ -335,16 +341,23 @@
 
     <!-- Create Event -->
     <div id="create-event-modal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content modal-content-wide">
             <h3>Schedule Event</h3>
             <form id="create-event-form">
                 <div class="input-group">
                     <label>Event Title</label>
                     <input type="text" id="event-title-input" required placeholder="Mid-term Exam">
                 </div>
-                <div class="input-group">
-                    <label>Date &amp; Time</label>
-                    <input type="datetime-local" id="event-date-input" required>
+                <div class="date-range-fields">
+                    <div class="input-group">
+                        <label>From Date</label>
+                        <input type="datetime-local" id="event-start-date-input" required>
+                    </div>
+                    <div class="range-arrow"></div>
+                    <div class="input-group">
+                        <label>To Date</label>
+                        <input type="datetime-local" id="event-end-date-input" required>
+                    </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="btn-cancel-event">Cancel</button>
@@ -460,6 +473,7 @@
 
         observe('user-name');
         observe('user-role');
+        syncUI();
     })();
     </script>
 

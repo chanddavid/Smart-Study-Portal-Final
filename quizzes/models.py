@@ -24,11 +24,29 @@ class Question(models.Model):
     def __str__(self):
         return self.text
 
+class QuizAttempt(models.Model):
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_attempts')
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='attempts')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    score = models.PositiveIntegerField(default=0)
+    total_questions = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ('student', 'quiz')
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.student.email} - {self.quiz.title}"
+
 class QuizSubmission(models.Model):
+    attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='quiz_submissions')
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='submissions')
     selected_index = models.IntegerField()
     is_correct = models.BooleanField()
+
+    class Meta:
+        unique_together = ('student', 'question')
 
     def __str__(self):
         return f"{self.student.email} - {self.question.id} ({self.is_correct})"

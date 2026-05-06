@@ -69,6 +69,7 @@ const ApiClient = {
     getQuizzes(classId)                              { return this.request(`/quizzes/?class_id=${classId}`); },
     createQuiz(body)                                 { return this.request('/quizzes/', 'POST', body); },
     launchQuiz(quizId)                               { return this.request(`/quizzes/${quizId}/launch/`, 'POST'); },
+    submitQuiz(quizId, answers)                      { return this.request(`/quizzes/${quizId}/submit/`, 'POST', { answers }); },
     submitAnswer(quizId, questionId, selected_index) { return this.request(`/quizzes/${quizId}/questions/${questionId}/submit/`, 'POST', { selected_index }); },
     revealQuiz(quizId)                               { return this.request(`/quizzes/${quizId}/reveal/`, 'POST'); },
     getQuizResults(quizId)                           { return this.request(`/quizzes/${quizId}/results/`); },
@@ -76,7 +77,7 @@ const ApiClient = {
 
     /* ---- Calendar ---- */
     getEvents(classId)                            { return this.request(`/classes/${classId}/calendar/`); },
-    createEvent(classId, title, event_date)        { return this.request(`/classes/${classId}/calendar/`, 'POST', { title, event_date }); },
+    createEvent(classId, title, start_date, end_date) { return this.request(`/classes/${classId}/calendar/`, 'POST', { title, start_date, end_date }); },
     updateEvent(eventId, data)                     { return this.request(`/calendar/${eventId}/`, 'PATCH', data); },
     deleteEvent(eventId)                           { return this.request(`/calendar/${eventId}/`, 'DELETE'); },
 
@@ -89,5 +90,6 @@ const ApiClient = {
     /* ---- Randomizers ---- */
     pickRandomStudent(classId)          { return this.request('/random/pick-student/', 'POST', { class_id: classId }); },
     generateGroups(classId, group_size) { return this.request('/random/groups/', 'POST', { class_id: classId, group_size }); },
+    getGroups(classId)                  { return this.request(`/classes/${classId}/groups/`); },
     getPresentationOrder(classId)       { return this.request('/random/presentation-order/', 'POST', { class_id: classId }); },
 };

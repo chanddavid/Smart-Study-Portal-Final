@@ -1,10 +1,11 @@
 import random
+from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import Class, Announcement
-from .serializers import ClassSerializer, AnnouncementSerializer
+from .models import Class, Announcement, GroupSet, StudentGroup, StudentGroupMember
+from .serializers import ClassSerializer, AnnouncementSerializer, StudentGroupSerializer
 from students.models import Enrolment
 from authentication.permissions import IsTeacher
 from rest_framework.permissions import IsAuthenticated
@@ -61,18 +62,71 @@ def class_detail(request, class_id):
 @permission_classes([IsTeacher])
 def random_groups(request):
     class_id = request.data.get('class_id')
-    group_size = int(request.data.get('group_size', 2))
+    try:
+        group_size = int(request.data.get('group_size', 2))
+    except (TypeError, ValueError):
+        return Response({'detail': 'Group size must be a number.'}, status=status.HTTP_400_BAD_REQUEST)
+    if group_size < 1:
+        return Response({'detail': 'Group size must be at least 1.'}, status=status.HTTP_400_BAD_REQUEST)
+
     classroom = get_object_or_404(Class, id=class_id, teacher=request.user)
     
     students = list(Enrolment.objects.filter(classroom=classroom).select_related('student'))
+    if not students:
+        return Response({'detail': 'No students enrolled.'}, status=status.HTTP_400_BAD_REQUEST)
+
     random.shuffle(students)
     
-    groups = []
-    for i in range(0, len(students), group_size):
-        group = students[i:i + group_size]
-        groups.append([{'id': s.student.id, 'name': f"{s.student.first_name} {s.student.last_name}"} for s in group])
-        
-    return Response({'groups': groups})
+    with transaction.atomic():
+        GroupSet.objects.select_for_update().filter(classroom=classroom).delete()
+        group_set = GroupSet.objects.create(
+            classroom=classroom,
+            created_by=request.user,
+            group_size=group_size,
+            is_active=True,
+        )
+
+        for index in range(0, len(students), group_size):
+            group = StudentGroup.objects.create(
+                group_set=group_set,
+                name=f"Group {(index // group_size) + 1}",
+                order=index // group_size,
+            )
+            StudentGroupMember.objects.bulk_create([
+                StudentGroupMember(group=group, student=enrolment.student)
+                for enrolment in students[index:index + group_size]
+            ])
+
+    groups = group_set.groups.prefetch_related('members__student')
+    return Response({
+        'group_set_id': group_set.id,
+        'groups': StudentGroupSerializer(groups, many=True).data,
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def class_groups(request, class_id):
+    classroom = get_object_or_404(Class, id=class_id)
+    role = getattr(request.user, 'role', '')
+
+    if role == 'TEACHER':
+        if classroom.teacher != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        groups = StudentGroup.objects.filter(group_set__classroom=classroom)
+    elif role == 'STUDENT':
+        if not Enrolment.objects.filter(classroom=classroom, student=request.user).exists():
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        groups = StudentGroup.objects.filter(group_set__classroom=classroom, members__student=request.user)
+    else:
+        return Response(status=status.HTTP_403_FORBIDDEN)
+
+    groups = groups.select_related('group_set').prefetch_related('members__student').order_by(
+        '-group_set__is_active',
+        '-group_set__created_at',
+        'order',
+        'id',
+    )
+    return Response(StudentGroupSerializer(groups, many=True).data)
 
 @api_view(['POST'])
 @permission_classes([IsTeacher])

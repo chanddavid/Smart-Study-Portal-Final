@@ -14,8 +14,22 @@ const screens = {
 let activeClassId = null;
 let currentRole = null;
 let ws = null;
+let lastCalendarEvents = [];
+let quizDraftAnswers = {};
+
+const EVENT_COLORS = ['#38bdf8', '#f59e0b', '#10b981', '#f472b6', '#a78bfa', '#f87171', '#22c55e', '#eab308'];
 
 // ---- Utilities ----
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    }[ch]));
+}
+
 function showToast(message, type = 'success') {
     const c = $('#toast-container');
     const t = document.createElement('div');
@@ -29,9 +43,16 @@ function switchScreen(key) {
     Object.values(screens).forEach(s => s.classList.add('hidden'));
     screens[key].classList.remove('hidden');
 }
-
 function fmtDate(d) {
     return new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function fmtDateCompact(d) {
+    return new Date(d).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtDateRange(start, end) {
+    return `${fmtDate(start)} → ${fmtDate(end)}`;
 }
 
 function fmtTime(d) {
@@ -42,7 +63,6 @@ function statusBadge(s) {
     const map = { DRAFT: 'badge-draft', LIVE: 'badge-live', COMPLETED: 'badge-completed' };
     return `<span class="badge ${map[s] || 'badge-default'}">${s}</span>`;
 }
-
 // ---- Tabs ----
 $$('.tab').forEach(tab => {
     tab.addEventListener('click', e => {
@@ -53,6 +73,7 @@ $$('.tab').forEach(tab => {
         refreshActiveTab();
     });
 });
+
 
 function refreshActiveTab() {
     const id = $('.tab-content.active')?.id;
@@ -279,6 +300,9 @@ async function openClassroom(id, name) {
     $('#btn-clear-hands').classList.toggle('hidden', currentRole !== 'TEACHER');
     $('#enrol-form').classList.toggle('hidden', currentRole !== 'TEACHER');
     $$('.teacher-only').forEach(el => el.classList.toggle('hidden', currentRole !== 'TEACHER'));
+    $$('.student-only').forEach(el => el.classList.toggle('hidden', currentRole !== 'STUDENT'));
+    $('#student-groups-panel').classList.add('hidden');
+    $('#student-groups-panel').innerHTML = '';
 
     // Reset to feed tab
     $$('.tab').forEach(t => t.classList.remove('active'));
@@ -403,10 +427,11 @@ async function fetchQuizzes() {
             let actions = '';
             if (currentRole === 'TEACHER') {
                 if (q.status === 'DRAFT') actions = `<button class="btn btn-sm btn-success" onclick="launchQuiz(${q.id})">▶ Launch</button>`;
-                else if (q.status === 'LIVE') actions = `<button class="btn btn-sm btn-secondary" onclick="revealQuiz(${q.id})">⏹ End & Reveal</button>`;
+                else if (q.status === 'LIVE') actions = `<button class="btn btn-sm btn-secondary" onclick="revealQuiz(${q.id})">⏹ End Quiz</button>`;
                 else actions = `<button class="btn btn-sm btn-secondary" onclick="viewResults(${q.id})">📊 Results</button>`;
             } else {
-                if (q.status === 'LIVE') actions = `<button class="btn btn-sm btn-primary" onclick="takeQuiz(${q.id})">✏️ Take Quiz</button>`;
+                if (q.status === 'LIVE' && q.attempted) actions = '<span class="badge badge-completed">Submitted</span>';
+                else if (q.status === 'LIVE') actions = `<button class="btn btn-sm btn-primary" onclick="takeQuiz(${q.id})">✏️ Take Quiz</button>`;
                 else if (q.status === 'COMPLETED') actions = `<button class="btn btn-sm btn-secondary" onclick="viewResults(${q.id})">📊 My Results</button>`;
                 else actions = '<span style="color:var(--text-muted)">Not yet live</span>';
             }
@@ -470,7 +495,7 @@ async function launchQuiz(id) {
 }
 
 async function revealQuiz(id) {
-    try { await ApiClient.revealQuiz(id); showToast('Quiz completed & revealed.'); fetchQuizzes(); } catch (_) { showToast('Failed.', 'error'); }
+    try { await ApiClient.revealQuiz(id); showToast('Quiz completed.'); fetchQuizzes(); } catch (_) { showToast('Failed.', 'error'); }
 }
 
 // ---- Take Quiz (Student) ----
@@ -478,49 +503,81 @@ async function takeQuiz(quizId) {
     const quizzes = await ApiClient.getQuizzes(activeClassId);
     const quiz = quizzes.find(q => q.id === quizId);
     if (!quiz || !quiz.questions.length) return showToast('No questions found.', 'error');
+    if (quiz.attempted) return showToast('Quiz already submitted.', 'info');
 
+    quizDraftAnswers[quizId] = {};
     const panel = $('#quiz-take-panel');
     panel.classList.remove('hidden');
     panel.innerHTML = `
-        <h4>📝 ${quiz.title}</h4>
+        <h4>📝 ${escapeHtml(quiz.title)}</h4>
         <div id="quiz-questions-live">
             ${quiz.questions.map((q, qi) => `
                 <div class="question-block" id="qblock-${q.id}">
-                    <div class="question-text">${qi + 1}. ${q.text}</div>
+                    <div class="question-text">${qi + 1}. ${escapeHtml(q.text)}</div>
                     <div class="option-group">
                         ${q.options.map((opt, oi) => `
-                            <button type="button" class="option-btn" data-quiz="${quizId}" data-question="${q.id}" data-index="${oi}" onclick="submitOption(this)">${opt}</button>
+                            <button type="button" class="option-btn" data-quiz="${quizId}" data-question="${q.id}" data-index="${oi}" onclick="chooseQuizOption(this)">${escapeHtml(opt)}</button>
                         `).join('')}
                     </div>
                     <div class="submit-feedback" id="feedback-${q.id}" style="margin-top:0.5rem;font-size:0.85rem"></div>
                 </div>
             `).join('')}
         </div>
+        <div id="quiz-submit-note" class="quiz-note">Select one answer for each question. Selected answers are locked.</div>
+        <button class="btn btn-primary mt-md" id="btn-submit-quiz-${quizId}" onclick="submitQuizAttempt(${quizId})" disabled>Submit Quiz</button>
         <button class="btn btn-secondary mt-md" onclick="$('#quiz-take-panel').classList.add('hidden')">Close</button>
     `;
 }
 
-async function submitOption(btn) {
+function chooseQuizOption(btn) {
     const quizId = btn.dataset.quiz;
     const questionId = btn.dataset.question;
     const index = parseInt(btn.dataset.index);
 
+    if (!quizDraftAnswers[quizId]) quizDraftAnswers[quizId] = {};
+    if (quizDraftAnswers[quizId][questionId]) return;
+    quizDraftAnswers[quizId][questionId] = { question_id: parseInt(questionId), selected_index: index };
+
     // Disable all options for this question
     const block = $(`#qblock-${questionId}`);
-    block.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; b.classList.remove('selected'); });
+    block.querySelectorAll('.option-btn').forEach(b => {
+        b.disabled = true;
+        b.classList.remove('selected');
+        b.classList.add('locked');
+    });
     btn.classList.add('selected');
+    $(`#feedback-${questionId}`).textContent = 'Answer locked.';
+    updateQuizSubmitState(quizId);
+}
 
+function updateQuizSubmitState(quizId) {
+    const total = $$('#quiz-questions-live .question-block').length;
+    const answered = Object.keys(quizDraftAnswers[quizId] || {}).length;
+    const submitBtn = $(`#btn-submit-quiz-${quizId}`);
+    if (submitBtn) submitBtn.disabled = answered !== total;
+}
+
+async function submitQuizAttempt(quizId) {
+    const answers = Object.values(quizDraftAnswers[quizId] || {});
+    const total = $$('#quiz-questions-live .question-block').length;
+    if (answers.length !== total) return showToast('Answer every question before submitting.', 'error');
+
+    const submitBtn = $(`#btn-submit-quiz-${quizId}`);
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
     try {
-        const res = await ApiClient.submitAnswer(quizId, questionId, index);
-        const fb = $(`#feedback-${questionId}`);
-        if (res.is_correct) {
-            btn.classList.add('correct');
-            fb.innerHTML = '<span class="badge badge-correct">✓ Correct!</span>';
-        } else {
-            btn.classList.add('wrong');
-            fb.innerHTML = '<span class="badge badge-wrong">✕ Incorrect</span>';
-        }
-    } catch (_) { showToast('Failed to submit.', 'error'); }
+        await ApiClient.submitQuiz(quizId, answers);
+        delete quizDraftAnswers[quizId];
+        $('#quiz-submit-note').innerHTML = '<span class="badge badge-completed">Submitted</span> Results will be available after the quiz ends.';
+        submitBtn.textContent = 'Submitted';
+        showToast('Quiz submitted.');
+        fetchQuizzes();
+        fetchStudentGrades();
+    } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Quiz';
+        showToast(err.data?.detail || 'Failed to submit.', 'error');
+    }
 }
 
 // ---- View Results ----
@@ -570,14 +627,87 @@ async function viewResults(quizId) {
 async function fetchCalendar() {
     try {
         const evs = await ApiClient.getEvents(activeClassId);
+        lastCalendarEvents = evs;
+        renderEventTimeline(evs);
         $('#calendar-tbody').innerHTML = evs.length ? evs.map(e => `
             <tr>
-                <td><strong>${e.title}</strong></td>
-                <td>${fmtDate(e.event_date)}</td>
+                <td><strong>${escapeHtml(e.title)}</strong></td>
+                <td class="date-range-cell">${fmtDateRange(e.start_date, e.end_date)}</td>
                 ${currentRole === 'TEACHER' ? `<td><button class="btn btn-sm btn-danger" onclick="deleteEvent(${e.id})">Delete</button></td>` : ''}
             </tr>
         `).join('') : '<tr><td colspan="3" class="text-center">No events scheduled.</td></tr>';
     } catch (_) {}
+}
+
+function renderEventTimeline(events) {
+    const wrap = $('#calendar-visualization');
+    const detail = $('#calendar-event-detail');
+    detail.classList.add('hidden');
+    detail.innerHTML = '';
+
+    if (!events.length) {
+        wrap.innerHTML = '<div class="empty-state" style="padding:1.5rem 1rem"><p>No date ranges to display.</p></div>';
+        return;
+    }
+
+    const items = events.map((event, index) => ({
+        ...event,
+        color: EVENT_COLORS[index % EVENT_COLORS.length],
+        identifier: `E${index + 1}`,
+        start: new Date(event.start_date),
+        end: new Date(event.end_date),
+    }));
+    const min = Math.min(...items.map(event => event.start.getTime()));
+    const max = Math.max(...items.map(event => event.end.getTime()));
+    const span = Math.max(max - min, 1);
+
+    wrap.innerHTML = `
+        <div class="timeline-frame">
+            <div class="timeline-scale">
+                <span>${fmtDateCompact(min)}</span>
+                <span>${fmtDateCompact(max)}</span>
+            </div>
+            ${items.map(event => {
+                const left = Math.max(0, ((event.start.getTime() - min) / span) * 100);
+                const width = Math.max(5, ((event.end.getTime() - event.start.getTime()) / span) * 100);
+                return `
+                    <div class="timeline-row">
+                        <div class="timeline-row-name">${escapeHtml(event.identifier)}</div>
+                        <div class="timeline-track">
+                            <div class="event-bar" id="event-bar-${event.id}" style="left:${left}%;width:${Math.min(width, 100 - left)}%;background:${event.color};">
+                                ${escapeHtml(event.identifier)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        <div class="event-labels">
+            ${items.map(event => `
+                <button type="button" class="event-label" id="event-label-${event.id}" onclick="selectTimelineEvent(${event.id})" title="${escapeHtml(event.title)}">
+                    <span class="event-label-dot" style="background:${event.color};"></span>
+                    <span class="event-label-text">${escapeHtml(event.identifier)} · ${escapeHtml(event.title)}</span>
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function selectTimelineEvent(eventId) {
+    const event = lastCalendarEvents.find(item => item.id === eventId);
+    if (!event) return;
+
+    $$('.event-bar').forEach(el => el.classList.remove('active'));
+    $$('.event-label').forEach(el => el.classList.remove('active'));
+    $(`#event-bar-${eventId}`)?.classList.add('active');
+    $(`#event-label-${eventId}`)?.classList.add('active');
+
+    const detail = $('#calendar-event-detail');
+    detail.classList.remove('hidden');
+    detail.innerHTML = `
+        <strong>${escapeHtml(event.title)}</strong>
+        <span>${fmtDateRange(event.start_date, event.end_date)}</span>
+    `;
 }
 
 const evtModal = $('#create-event-modal');
@@ -585,12 +715,19 @@ $('#btn-new-event').addEventListener('click', () => evtModal.classList.remove('h
 $('#btn-cancel-event').addEventListener('click', () => evtModal.classList.add('hidden'));
 $('#create-event-form').addEventListener('submit', async e => {
     e.preventDefault();
+    const startDate = $('#event-start-date-input').value;
+    const endDate = $('#event-end-date-input').value;
+    if (new Date(endDate) < new Date(startDate)) {
+        return showToast('To Date must be after From Date.', 'error');
+    }
+
     try {
-        await ApiClient.createEvent(activeClassId, $('#event-title-input').value, $('#event-date-input').value);
+        await ApiClient.createEvent(activeClassId, $('#event-title-input').value, startDate, endDate);
         showToast('Event scheduled!');
         evtModal.classList.add('hidden');
         $('#event-title-input').value = '';
-        $('#event-date-input').value = '';
+        $('#event-start-date-input').value = '';
+        $('#event-end-date-input').value = '';
         fetchCalendar();
     } catch (_) { showToast('Failed.', 'error'); }
 });
@@ -599,6 +736,33 @@ async function deleteEvent(id) {
     if (!confirm('Delete this event?')) return;
     try { await ApiClient.deleteEvent(id); fetchCalendar(); } catch (_) {}
 }
+
+$('#btn-show-my-groups').addEventListener('click', async () => {
+    const panel = $('#student-groups-panel');
+    panel.classList.remove('hidden');
+    panel.innerHTML = '<div class="empty-state" style="padding:1rem"><p>Loading groups...</p></div>';
+    try {
+        const groups = await ApiClient.getGroups(activeClassId);
+        if (!groups.length) {
+            panel.innerHTML = '<div class="empty-state" style="padding:1.5rem 1rem"><p>No groups assigned</p></div>';
+            return;
+        }
+
+        panel.innerHTML = groups.map(group => `
+            <div class="group-card ${group.status === 'Active' ? 'active' : ''}">
+                <div class="flex-between">
+                    <strong>${escapeHtml(group.name)}</strong>
+                    <span class="badge ${group.status === 'Active' ? 'badge-correct' : 'badge-default'}">${escapeHtml(group.status)}</span>
+                </div>
+                <ul class="group-members">
+                    ${group.members.map(member => `<li>${escapeHtml(member.name)} <span>${escapeHtml(member.email)}</span></li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+    } catch (_) {
+        panel.innerHTML = '<div class="empty-state" style="padding:1rem"><p>Failed to load groups.</p></div>';
+    }
+});
 
 // ---- Randomizer Tools ----
 $('#btn-rand-student').addEventListener('click', async () => {
@@ -613,7 +777,7 @@ $('#btn-generate-groups').addEventListener('click', async () => {
     if (!size || size < 1) return;
     try {
         const res = await ApiClient.generateGroups(activeClassId, size);
-        const html = res.groups.map((g, i) => `<div class="result-card"><strong>Group ${i + 1}</strong><br>${g.map(s => s.name).join(', ')}</div>`).join('');
+        const html = res.groups.map(g => `<div class="result-card"><strong>${escapeHtml(g.name)}</strong><br>${g.members.map(s => escapeHtml(s.name)).join(', ')}</div>`).join('');
         showRandomResult('👥 Random Groups', `<div class="result-grid">${html}</div>`);
     } catch (_) { showToast('Failed.', 'error'); }
 });
@@ -661,6 +825,7 @@ function connectWebSocket(classId) {
         }
     };
 }
+
 
 // ---- Bootstrap ----
 if (ApiClient.getUser() && ApiClient.getToken()) {
