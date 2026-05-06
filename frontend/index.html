@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Study Portal</title>
+    <meta name="description" content="Smart Study Portal — Role-based classroom management platform with live quizzes, announcements, and real-time collaboration.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <!-- ===== LOGIN ===== -->
+    <section id="login-section" class="screen-section">
+        <div class="login-card card">
+            <div class="logo-icon">📖</div>
+            <h1>Smart Study</h1>
+            <p>Sign in to your workspace.</p>
+            <form id="login-form">
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" required placeholder="name@example.com">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary w-full" id="login-btn">Sign In →</button>
+            </form>
+            <p style="margin-top:1rem;">
+                <a href="#" id="link-forgot-pw" style="color:var(--accent);font-size:0.85rem;text-decoration:none;font-weight:500;">Forgot Password?</a>
+            </p>
+        </div>
+    </section>
+
+    <!-- Password Reset: Request -->
+    <div id="pw-reset-request-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Reset Password</h3>
+            <p style="margin-bottom:1rem;">Enter your email. A reset code will be printed in the server console.</p>
+            <form id="pw-reset-request-form">
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="pw-reset-email" required placeholder="name@example.com">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-pw-request">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Reset Code</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Password Reset: Confirm -->
+    <div id="pw-reset-confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Set New Password</h3>
+            <p style="margin-bottom:1rem;">Enter your new password below.</p>
+            <form id="pw-reset-confirm-form">
+                <input type="hidden" id="pw-reset-uid">
+                <input type="hidden" id="pw-reset-token">
+                <div class="input-group">
+                    <label>New Password</label>
+                    <input type="password" id="pw-reset-newpw" required placeholder="••••••••">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-pw-confirm">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section id="dashboard" class="screen-section hidden">
+
+        <!-- Navbar -->
+        <nav class="nav-bar">
+            <div class="nav-brand">Smart Study</div>
+            <div class="nav-actions">
+                <!-- User badge with avatar -->
+                <div class="user-badge">
+                    <!-- Avatar circle: JS should add class "teacher" or "student" and set initials -->
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <span class="user-name-text" id="user-name">User</span>
+                    <span style="color:var(--border-color)">|</span>
+                    <!-- <span class="role-label" id="user-role-label">ROLE</span> -->
+                    <!-- keep original hidden span for JS that reads id="user-role" -->
+                    <span id="user-role">ROLE</span>
+                </div>
+                <button class="btn btn-sm btn-secondary" id="btn-edit-profile">✏️ Profile</button>
+                <button class="btn btn-sm btn-secondary" id="logout-btn">Log out</button>
+            </div>
+        </nav>
+
+        <main class="dashboard-content">
+
+            <!-- Welcome Banner (Teacher) -->
+            <div id="welcome-banner-teacher" class="welcome-banner hidden">
+                <div>
+                    <h2>Welcome back, <span id="welcome-name-teacher">Teacher</span> 👋</h2>
+                    <p>Manage your classes, post quizzes, and track student progress.</p>
+                </div>
+                <div class="banner-icon">🏫</div>
+            </div>
+
+            <!-- Welcome Banner (Student) -->
+            <div id="welcome-banner-student" class="welcome-banner student-banner hidden">
+                <div>
+                    <h2>Welcome back, <span id="welcome-name-student">Student</span> 👋</h2>
+                    <p>Check your classes, take quizzes, and view your grades.</p>
+                </div>
+                <div class="banner-icon">🎓</div>
+            </div>
+
+            <!-- Stats row (counts populated by JS if desired) -->
+            <div class="stats-row hidden" id="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">🏫</div>
+                    <div class="stat-value" id="stat-classes">—</div>
+                    <div class="stat-label">Classes</div>
+                </div>
+                <div class="stat-card teacher-stat hidden">
+                    <div class="stat-icon">👩‍🎓</div>
+                    <div class="stat-value" id="stat-students">—</div>
+                    <div class="stat-label">Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-value" id="stat-quizzes">—</div>
+                    <div class="stat-label">Quizzes</div>
+                </div>
+            </div>
+
+            <div class="flex-between" style="margin-bottom:1.25rem;">
+                <h2>Your Workspaces</h2>
+                <button class="btn btn-primary hidden" id="btn-create-class">+ New Class</button>
+            </div>
+
+            <!-- Student Grades -->
+            <div id="student-grades-section" class="card hidden" style="margin-bottom:1.5rem;">
+                <h3 style="margin-bottom:1rem;">📊 My Grade Report</h3>
+                <table>
+                    <thead><tr><th>Quiz</th><th>Score</th><th>Total Questions</th></tr></thead>
+                    <tbody id="grades-tbody"></tbody>
+                </table>
+            </div>
+
+            <div class="grid-layout" id="classes-grid"></div>
+        </main>
+    </section>
+
+    <!-- ===== CLASSROOM VIEW ===== -->
+    <section id="classroom-view" class="screen-section hidden">
+
+        <nav class="nav-bar">
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <button class="btn btn-sm btn-secondary" id="btn-back-dash">← Back</button>
+                <div class="nav-brand" id="active-class-title">Classroom</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.6rem;">
+                <small style="color:var(--text-muted);">Sync</small>
+                <span class="badge" id="ws-indicator" style="background:var(--danger);color:white;">Offline</span>
+                <!-- Avatar also in classroom nav -->
+                <div class="user-badge" style="margin-left:0.5rem;">
+                    <div class="user-avatar" id="class-user-avatar">U</div>
+                    <span class="user-name-text" id="class-user-name" style="font-size:0.8rem;">User</span>
+                </div>
+            </div>
+        </nav>
+
+        <main class="dashboard-content" style="max-width:1200px;">
+            <div class="classroom-layout">
+
+                <!-- Sidebar -->
+                <aside class="sidebar">
+                    <div class="card">
+                        <h3>Actions</h3>
+                        <!-- Teacher Tools -->
+                        <div id="teacher-controls" class="hidden" style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
+                            <button class="btn btn-secondary w-full" id="btn-announce">📢 Announcement</button>
+                            <button class="btn btn-secondary w-full" id="btn-rand-student">🎯 Pick Student</button>
+                            <button class="btn btn-secondary w-full" id="btn-generate-groups">👥 Random Groups</button>
+                            <button class="btn btn-secondary w-full" id="btn-presentation-order">📋 Present Order</button>
+                        </div>
+                        <!-- Student Tools -->
+                        <div id="student-controls" class="hidden" style="margin-top:0.75rem;">
+                            <button class="btn btn-primary w-full" id="btn-raise-hand">🤚 Raise Hand</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="flex-between" style="margin-bottom:0.75rem;">
+                            <h3>Hand Queue</h3>
+                            <span class="badge badge-default" id="queue-count">0</span>
+                        </div>
+                        <div id="hand-raise-list"></div>
+                        <button class="btn btn-sm btn-secondary w-full hidden mt-sm" id="btn-clear-hands">Clear Queue</button>
+                    </div>
+                </aside>
+
+                <!-- Main Content -->
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <div class="tabs" style="padding:1rem 1.5rem 0;">
+                        <div class="tab active" data-target="tab-feed">Feed</div>
+                        <div class="tab" data-target="tab-roster">Roster</div>
+                        <div class="tab" data-target="tab-quizzes">Quizzes</div>
+                        <div class="tab" data-target="tab-calendar">Calendar</div>
+                    </div>
+
+                    <div style="padding:1.5rem;">
+                        <!-- FEED -->
+                        <div id="tab-feed" class="tab-content active">
+                            <h3 style="margin-bottom:1rem;">Live Feed</h3>
+                            <div id="announcement-feed"></div>
+                        </div>
+
+                        <!-- ROSTER -->
+                        <div id="tab-roster" class="tab-content">
+                            <div class="flex-between">
+                                <h3>Enrolled Students</h3>
+                            </div>
+                            <form id="enrol-form" class="hidden" style="display:flex;gap:0.75rem;margin-top:1rem;">
+                                <input type="email" id="enrol-email" placeholder="student@example.com" required style="flex:1">
+                                <button type="submit" class="btn btn-primary">Enrol</button>
+                            </form>
+                            <table style="margin-top:1rem;">
+                                <thead><tr><th>Name</th><th>Email</th><th class="teacher-only hidden">Action</th></tr></thead>
+                                <tbody id="roster-tbody"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- QUIZZES -->
+                        <div id="tab-quizzes" class="tab-content">
+                            <div class="flex-between">
+                                <h3>Quizzes</h3>
+                                <button class="btn btn-sm btn-primary teacher-only hidden" id="btn-new-quiz">+ New Quiz</button>
+                            </div>
+                            <table style="margin-top:1rem;">
+                                <thead><tr><th>Title</th><th>Questions</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody id="quizzes-tbody"></tbody>
+                            </table>
+                            <div id="quiz-take-panel" class="quiz-panel hidden" style="margin-top:1.5rem;"></div>
+                        </div>
+
+                        <!-- CALENDAR -->
+                        <div id="tab-calendar" class="tab-content">
+                            <div class="flex-between">
+                                <h3>Events &amp; Schedule</h3>
+                                <button class="btn btn-sm btn-primary teacher-only hidden" id="btn-new-event">+ Schedule</button>
+                            </div>
+                            <table style="margin-top:1rem;">
+                                <thead><tr><th>Event</th><th>Date</th><th class="teacher-only hidden">Actions</th></tr></thead>
+                                <tbody id="calendar-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </section>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Create Class -->
+    <div id="create-class-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Create Workspace</h3>
+            <form id="create-class-form">
+                <div class="input-group">
+                    <label>Workspace Name</label>
+                    <input type="text" id="class-name-input" required placeholder="e.g. Mathematics 101">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-create">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- logout confirmation -->
+    <div id="logout-confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to log out?</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-logout">Cancel</button>
+                <button type="button" class="btn btn-danger" id="btn-confirm-logout">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Quiz -->
+    <div id="create-quiz-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:540px;">
+            <h3>Create Quiz</h3>
+            <form id="create-quiz-form">
+                <div class="input-group">
+                    <label>Quiz Title</label>
+                    <input type="text" id="quiz-title-input" required placeholder="Midterm Exam">
+                </div>
+                <div id="quiz-questions-container"></div>
+                <button type="button" class="btn btn-sm btn-secondary w-full" id="btn-add-question" style="margin-bottom:1rem;">+ Add Question</button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-quiz">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Quiz</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Announcement -->
+    <div id="announce-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Post Announcement</h3>
+            <form id="announce-form">
+                <div class="input-group">
+                    <label>Message</label>
+                    <textarea id="announce-message" required placeholder="Type your announcement..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-announce">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Event -->
+    <div id="create-event-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Schedule Event</h3>
+            <form id="create-event-form">
+                <div class="input-group">
+                    <label>Event Title</label>
+                    <input type="text" id="event-title-input" required placeholder="Mid-term Exam">
+                </div>
+                <div class="input-group">
+                    <label>Date &amp; Time</label>
+                    <input type="datetime-local" id="event-date-input" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-event">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Random Result -->
+    <div id="random-result-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="random-result-title">Result</h3>
+            <div id="random-result-body"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btn-close-random">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile -->
+    <div id="edit-profile-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Edit Profile</h3>
+            <form id="edit-profile-form">
+                <div class="input-group">
+                    <label>First Name</label>
+                    <input type="text" id="profile-first-name" required placeholder="First name">
+                </div>
+                <div class="input-group">
+                    <label>Last Name</label>
+                    <input type="text" id="profile-last-name" required placeholder="Last name">
+                </div>
+                <div class="input-group">
+                    <label>Phone Number</label>
+                    <input type="text" id="profile-phone" placeholder="Enter your phone number">
+                </div>
+                <div class="input-group">
+                    <label>Address</label>
+                    <textarea id="profile-address" placeholder="Your address..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-profile">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Lightweight UI enhancement: sync avatar + welcome banner from existing user-name/user-role elements -->
+    <script>
+    (function() {
+        // Watch for changes to #user-name and #user-role and update the new UI elements
+        const syncUI = () => {
+            const nameEl = document.getElementById('user-name');
+            const roleEl = document.getElementById('user-role');
+            if (!nameEl || !roleEl) return;
+
+            const name = nameEl.textContent.trim();
+            const role = roleEl.textContent.trim().toLowerCase();
+
+            // Initials for avatar
+            const initials = name.split(' ').map(p => p[0] || '').join('').toUpperCase().slice(0, 2) || 'U';
+
+            // Update avatars
+            ['user-avatar', 'class-user-avatar'].forEach(id => {
+                const av = document.getElementById(id);
+                if (av) {
+                    av.textContent = initials;
+                    av.className = 'user-avatar ' + (role === 'teacher' ? 'teacher' : 'student');
+                }
+            });
+
+            // Update classroom nav name
+            const classNameEl = document.getElementById('class-user-name');
+            if (classNameEl) classNameEl.textContent = name;
+
+            // Role label
+            const roleLabel = document.getElementById('user-role-label');
+            if (roleLabel) {
+                roleLabel.textContent = role.charAt(0).toUpperCase() + role.slice(1) || 'User';
+                roleLabel.className = 'role-label ' + (role === 'teacher' ? 'teacher' : 'student');
+            }
+
+            // Welcome banners
+            const bannerTeacher = document.getElementById('welcome-banner-teacher');
+            const bannerStudent = document.getElementById('welcome-banner-student');
+            const wNameTeacher = document.getElementById('welcome-name-teacher');
+            const wNameStudent = document.getElementById('welcome-name-student');
+
+            if (name && role) {
+                const firstName = name.split(' ')[0];
+                if (role === 'teacher') {
+                    if (wNameTeacher) wNameTeacher.textContent = firstName;
+                    if (bannerTeacher) bannerTeacher.classList.remove('hidden');
+                    if (bannerStudent) bannerStudent.classList.add('hidden');
+                } else {
+                    if (wNameStudent) wNameStudent.textContent = firstName;
+                    if (bannerStudent) bannerStudent.classList.remove('hidden');
+                    if (bannerTeacher) bannerTeacher.classList.add('hidden');
+                }
+            }
+        };
+
+        // Use MutationObserver to catch when JS updates the span text
+        const observe = (id) => {
+            const el = document.getElementById(id);
+            if (el) new MutationObserver(syncUI).observe(el, { childList: true, subtree: true, characterData: true });
+        };
+
+        observe('user-name');
+        observe('user-role');
+    })();
+    </script>
+
+</body>
+</html>
