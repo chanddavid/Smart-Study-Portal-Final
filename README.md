@@ -2,7 +2,6 @@
 
 A role-based classroom management backend built with Django, Django REST Framework, and Django Channels. Features JWT authentication, live quizzes, student enrolment, hand-raise queues, announcements, calendar scheduling, and real-time WebSocket broadcasts.
 
----
 
 ## Tech Stack
 - **Python 3.10+** / **Django 6.x**
@@ -11,7 +10,6 @@ A role-based classroom management backend built with Django, Django REST Framewo
 - **PostgreSQL** (via Supabase)
 - **bcrypt** password hashing
 
----
 
 ## Installation & Setup
 
@@ -20,10 +18,17 @@ A role-based classroom management backend built with Django, Django REST Framewo
    python -m venv venv
    .\venv\Scripts\Activate
    ```
+   ```for mac/linux
+   python -m venv venv
+   source/bin/activate
+   ```
 
 2. **Install dependencies**
    ```powershell
    .\venv\Scripts\pip install -r requirements.txt
+   ```
+   ```for mac/linux
+   pip install -r requirements.txt
    ```
 
 3. **Environment Variables**
